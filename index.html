@@ -1,20 +1,126 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Countryball Game</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selbstreflexions-Test</title>
+
+<style>
+:root{
+  --bg1:#fdf6f9;
+  --bg2:#e6f7f5;
+  --card:#ffffff;
+  --text:#444;
+  --accent:#a8dadc;
+  --progress:#76c7c0;
+  --warn:#ff4d4d;
+}
+
+body.dark{
+  --bg1:#1e1f26;
+  --bg2:#2a2c36;
+  --card:#2f3240;
+  --text:#f1f1f1;
+  --accent:#5da9e9;
+  --progress:#5da9e9;
+  --warn:#ff6b6b;
+}
+
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  background:linear-gradient(180deg,var(--bg1),var(--bg2));
+  color:var(--text);
+}
+
+.container{max-width:900px;margin:auto;padding:15px;}
+.card{background:var(--card);padding:18px;border-radius:16px;margin-bottom:15px;}
+
+.warning{border:3px solid var(--warn);animation:pulse 2s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 var(--warn);}50%{box-shadow:0 0 20px var(--warn);}100%{box-shadow:0 0 0 var(--warn);}}
+
+button{width:100%;padding:12px;border:none;border-radius:12px;background:var(--accent);cursor:pointer;font-size:16px;}
+.progress{height:10px;background:#ddd;border-radius:10px;margin:10px 0;}
+.progress-bar{height:100%;width:0;background:var(--progress);} 
+.question{margin:10px 0;} label{display:block;margin:4px 0;} .result{display:none}
+.toggle{text-align:center;margin-top:10px;cursor:pointer}
+.music-btn{margin-top:8px;font-size:14px;cursor:pointer;text-align:center;opacity:0.8}
+</style>
 </head>
 <body>
-    <h1>Countryball Game: Europa</h1>
-    <div id="game">
-        <div id="map"></div>
-        <div id="controls">
-            <button onclick="createAlliance()">Bündnis gründen</button>
-            <button onclick="attack()">Angreifen</button>
-        </div>
-    </div>
-    <script src="script.js"></script>
+
+<!-- Hintergrundmusik -->
+<audio id="bgMusic" loop>
+  <source src="https://upload.wikimedia.org/wikipedia/commons/4/4d/Hava_Nagila.ogg" type="audio/ogg">
+</audio>
+
+<div class="container">
+<div class="card">
+<select id="languageSelect">
+<option value="de">Deutsch</option>
+<option value="en">English</option>
+</select>
+<div class="toggle" onclick="toggleDarkMode()" id="darkBtn"></div>
+<div class="music-btn" onclick="toggleMusic()" id="musicBtn">🎵 Musik starten</div>
+</div>
+
+<div class="card"><h1 id="title"></h1></div>
+<div class="card warning" id="warningBox"></div>
+<div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+<form id="quizForm" class="card"></form>
+<button id="resultBtn"></button>
+<div class="card result" id="resultBox"></div>
+</div>
+
+<script>
+function toggleDarkMode(){document.body.classList.toggle("dark");}
+
+function toggleMusic(){
+  const m=document.getElementById("bgMusic");
+  if(m.paused){m.play();document.getElementById("musicBtn").innerText="⏸ Musik pausieren";}
+  else{m.pause();document.getElementById("musicBtn").innerText="🎵 Musik starten";}
+}
+
+const translations={
+de:{title:"Selbstreflexions-Fragebogen",dark:"🌙 Dark Mode umschalten",warning:"Wichtiger Hinweis: Kein medizinischer Test. Schulprojekt.",button:"Ergebnis anzeigen",answers:["Trifft nicht zu","Eher nicht","Teils","Eher ja","Trifft zu"],questions:["Ich belohne mich manchmal mit Konsum.","Mein Konsum ist über die Zeit stärker geworden."],results:[{limit:5,title:"OK",rec:"Alles gut."},{limit:999,title:"Auffällig",rec:"Nachdenken empfohlen."}]},
+
+en:{title:"Self Reflection Survey",dark:"🌙 Toggle Dark Mode",warning:"Important: Not a medical test.",button:"Show Result",answers:["Not true","Rather no","Partly","Rather yes","True"],questions:["I sometimes reward myself with consumption.","My consumption increased."],results:[{limit:5,title:"OK",rec:"Looks fine."},{limit:999,title:"Concern",rec:"Consider reflection."}]}
+};
+
+function loadLanguage(lang){
+let t=translations[lang];
+title.innerText=t.title;
+warningBox.innerText=t.warning;
+resultBtn.innerText=t.button;
+darkBtn.innerText=t.dark;
+quizForm.innerHTML="";
+t.questions.forEach((q,i)=>{
+let div=document.createElement("div");
+div.className="question";
+div.innerHTML="<b>"+(i+1)+". "+q+"</b>";
+t.answers.forEach((a,x)=>div.innerHTML+=`<label><input type='radio' name='q${i}' value='${x}'> ${a}</label>`);
+quizForm.appendChild(div);
+});}
+
+quizForm.addEventListener("change",()=>{
+let total=translations[languageSelect.value].questions.length;
+let count=new FormData(quizForm);
+progressBar.style.width=(Array.from(count.keys()).length/total*100)+"%";
+});
+
+resultBtn.onclick=function(){
+let t=translations[languageSelect.value];
+let data=new FormData(quizForm);
+let score=0,count=0;
+for(let v of data.values()){score+=Number(v);count++;}
+if(count<t.questions.length){alert("Bitte alle Fragen beantworten");return;}
+let res=t.results.find(r=>score<r.limit);
+resultBox.style.display="block";
+resultBox.innerHTML="<h2>"+res.title+"</h2><p>Score: "+score+"</p><p>"+res.rec+"</p>";
+};
+
+languageSelect.onchange=e=>loadLanguage(e.target.value);
+loadLanguage("de");
+</script>
 </body>
 </html>
